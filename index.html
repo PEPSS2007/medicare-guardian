@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCare Guardian - AI-Powered Senior Health Companion</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Leaflet JS Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-medium">
+
+    <!-- App Shell Layout -->
+    <div class="app-container">
+        
+        <!-- Sidebar / Navigation -->
+        <header class="app-sidebar">
+            <div class="brand">
+                <i class="bi bi-shield-heart-fill brand-icon"></i>
+                <div class="brand-text">
+                    <h1>MediCare</h1>
+                    <span class="brand-sub">Guardian</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-view="dashboard">
+                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                </button>
+                <button class="nav-item" data-view="medications">
+                    <i class="bi bi-capsule"></i> Medications
+                </button>
+                <button class="nav-item" data-view="vault">
+                    <i class="bi bi-journal-medical"></i> Prescriptions
+                </button>
+                <button class="nav-item" data-view="pharmacy">
+                    <i class="bi bi-geo-alt-fill"></i> Nearby Pharmacy
+                </button>
+                <button class="nav-item" data-view="analytics">
+                    <i class="bi bi-graph-up-arrow"></i> Adherence Reports
+                </button>
+                <button class="nav-item" data-view="emergency">
+                    <i class="bi bi-exclamation-octagon-fill text-danger animate-pulse"></i> SOS & Emergency
+                </button>
+            </nav>
+            
+            <!-- Accessibility & Theme Panel at Bottom of Navigation -->
+            <div class="accessibility-panel">
+                <div class="panel-section-title">Senior Controls</div>
+                
+                <div class="control-row">
+                    <span class="control-label"><i class="bi bi-type"></i> Text Size</span>
+                    <div class="text-size-controls">
+                        <button class="size-btn btn-sm" id="btn-text-decrease" title="Decrease font size">A-</button>
+                        <button class="size-btn btn-sm active" id="btn-text-normal" title="Normal font size">A</button>
+                        <button class="size-btn btn-sm" id="btn-text-increase" title="Increase font size">A+</button>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <span class="control-label"><i class="bi bi-eye"></i> Mode</span>
+                    <select id="theme-selector" class="theme-select">
+                        <option value="light">☀️ Light</option>
+                        <option value="dark">🌙 Dark</option>
+                        <option value="high-contrast">👁️ High Contrast</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="app-content">
+            
+            <!-- Top bar -->
+            <div class="top-bar">
+                <div class="welcome-msg">
+                    <h2 id="greeting">Good Morning, Senior</h2>
+                    <p id="current-datetime">Loading date & time...</p>
+                </div>
+                <div class="status-indicators">
+                    <div class="status-badge pulse-yellow" id="badge-next-med">
+                        <i class="bi bi-clock-history"></i> Next: <span id="header-next-med-time">Loading...</span>
+                    </div>
+                    <div class="status-badge" id="badge-adherence">
+                        <i class="bi bi-trophy"></i> Adherence: <span id="header-adherence-pct">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: Dashboard -->
+            <section id="view-dashboard" class="content-view active">
+                <div class="dashboard-grid">
+                    
+                    <!-- Primary Adherence Overview Card -->
+                    <div class="card card-hero glassmorphic grid-col-2">
+                        <div class="hero-content">
+                            <h3>Welcome to your Daily Care Dashboard</h3>
+                            <p>Here is your schedule for today. Keep taking your medications on time to maintain your healthy life!</p>
+                            <div class="daily-progress-container">
+                                <div class="progress-details">
+                                    <span>Today's Completion</span>
+                                    <span id="today-completion-text">0 / 0 Taken</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" id="today-progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hero-image">
+                            <i class="bi bi-heart-pulse-fill pulse-slow"></i>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Dose Action Alert -->
+                    <div class="card card-alert-urgent glassmorphic grid-col-2" id="dashboard-upcoming-alert">
+                        <div class="alert-header">
+                            <div class="alert-title-group">
+                                <span class="alert-badge">UPCOMING DOSE</span>
+                                <h3 id="upcoming-med-name">Loading...</h3>
+                            </div>
+                            <span class="alert-time" id="upcoming-med-time">--:-- AM</span>
+                        </div>
+                        <div class="alert-body">
+                            <div class="med-dose-details">
+                                <p><strong id="upcoming-med-dose">--</strong> • <strong id="upcoming-med-instruction">--</strong></p>
+                                <span class="med-doctor" id="upcoming-med-doctor">Dr. --</span>
+                            </div>
+                            <div class="action-buttons-group">
+                                <button class="btn btn-success btn-lg" id="btn-action-take" data-id=""><i class="bi bi-check-circle-fill"></i> Mark Taken</button>
+                                <button class="btn btn-warning btn-lg" id="btn-action-snooze" data-id=""><i class="bi bi-alarm-fill"></i> Snooze 15m</button>
+                                <button class="btn btn-secondary btn-lg" id="btn-action-skip" data-id=""><i class="bi bi-slash-circle"></i> Skip</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerts & Notifications Panel -->
+                    <div class="card glassmorphic">
+                        <div class="card-header">
+                            <h4><i class="bi bi-bell-fill text-warning"></i> Safety Alerts & Reminders</h4>
+                        </div>
+                        <div class="card-body scroll-y" id="alerts-list">
+                            <!-- Populated dynamically: Expiry, Low Stock, etc. -->
+                            <p class="empty-state">All systems normal. No active alerts.</p>
+                        </div>
+                    </div>
+
+                    <!-- Today's Schedule Timeline -->
+                    <div class="card glassmorphic">
+                        <div class="card-header">
+                            <h4><i class="bi bi-calendar-event-fill text-primary"></i> Today's Schedule</h4>
+                        </div>
+                        <div class="card-body scroll-y" id="dashboard-schedule-timeline">
+                            <!-- Populated dynamically -->
+                            <p class="empty-state">No medications scheduled for today.</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action shortcuts -->
+                    <div class="card glassmorphic grid-col-2">
+                        <div class="card-header">
+                            <h4><i class="bi bi-lightning-charge-fill text-accent"></i> Quick Assistance Shortcuts</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="shortcuts-grid">
+                                <button class="shortcut-card" data-shortcut="add-med">
+                                    <div class="shortcut-icon icon-add"><i class="bi bi-plus-lg"></i></div>
+                                    <span>Add Medicine</span>
+                                </button>
+                                <button class="shortcut-card" data-shortcut="ocr-scan">
+                                    <div class="shortcut-icon icon-scan"><i class="bi bi-camera-fill"></i></div>
+                                    <span>Scan Prescription</span>
+                                </button>
+                                <button class="shortcut-card" data-shortcut="map-find">
+                                    <div class="shortcut-icon icon-map"><i class="bi bi-geo-alt-fill"></i></div>
+                                    <span>Find Pharmacy</span>
+                                </button>
+                                <button class="shortcut-card" data-shortcut="report-view">
+                                    <div class="shortcut-icon icon-report"><i class="bi bi-bar-chart-fill"></i></div>
+                                    <span>Weekly Reports</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- VIEW: Medications -->
+            <section id="view-medications" class="content-view">
+                <div class="view-header">
+                    <h3>Active Medication Inventory</h3>
+                    <button class="btn btn-primary" id="btn-add-med-modal"><i class="bi bi-plus-circle-fill"></i> Add New Medicine</button>
+                </div>
+                <div class="medications-grid" id="medications-list-container">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- VIEW: Prescriptions Vault -->
+            <section id="view-vault" class="content-view">
+                <div class="view-header">
+                    <h3>Digital Prescription Vault</h3>
+                </div>
+                <div class="vault-container">
+                    <!-- File Upload / OCR Area -->
+                    <div class="card glassmorphic ocr-upload-card">
+                        <div class="ocr-dropzone" id="ocr-drop-area">
+                            <i class="bi bi-file-earmark-medical-fill ocr-icon"></i>
+                            <h4>Drag & Drop Prescription Image Here</h4>
+                            <p>or click to browse from files</p>
+                            <input type="file" id="prescription-file-input" accept="image/*" class="file-input-hidden">
+                            <div class="ocr-status-container" id="ocr-status-box" style="display: none;">
+                                <div class="spinner"></div>
+                                <span id="ocr-status-text">Uploading image...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Real-time OCR interactive parsing dashboard -->
+                        <div class="ocr-results-panel" id="ocr-results" style="display: none;">
+                            <div class="panel-header-sub">
+                                <h5>🤖 AI OCR Smart Scanned Fields</h5>
+                                <button class="btn btn-sm btn-outline" id="btn-clear-ocr">Clear</button>
+                            </div>
+                            <div class="ocr-results-body">
+                                <div class="ocr-image-preview">
+                                    <img id="ocr-preview-img" src="" alt="Prescription preview">
+                                </div>
+                                <div class="ocr-extracted-form">
+                                    <div class="form-group-row">
+                                        <label>Medicine Name</label>
+                                        <input type="text" id="ocr-field-name" class="input-glow">
+                                    </div>
+                                    <div class="form-group-row">
+                                        <label>Dose (Qty)</label>
+                                        <input type="text" id="ocr-field-dose" class="input-glow">
+                                    </div>
+                                    <div class="form-group-row">
+                                        <label>Frequency</label>
+                                        <select id="ocr-field-freq" class="input-glow">
+                                            <option value="Once Daily">Once Daily</option>
+                                            <option value="Twice Daily">Twice Daily</option>
+                                            <option value="Three Times Daily">Three Times Daily</option>
+                                            <option value="Four Times Daily">Four Times Daily</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <label>Doctor Name</label>
+                                        <input type="text" id="ocr-field-doctor" class="input-glow">
+                                    </div>
+                                    <div class="form-group-row">
+                                        <label>Full Extracted Text (AI Log)</label>
+                                        <textarea id="ocr-field-raw" readonly></textarea>
+                                    </div>
+                                    <button class="btn btn-success btn-block" id="btn-ocr-save"><i class="bi bi-file-earmark-plus"></i> Import Into Medications</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prescriptions History Grid -->
+                    <div class="vault-history">
+                        <h4>Stored Prescriptions</h4>
+                        <div class="prescriptions-grid" id="vault-list-container">
+                            <!-- Populated dynamically -->
+                            <p class="empty-state">No prescription scans uploaded yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Nearby Pharmacy Finder -->
+            <section id="view-pharmacy" class="content-view">
+                <div class="view-header">
+                    <h3>Pharmacy Navigation Assistance</h3>
+                </div>
+                <div class="pharmacy-layout">
+                    <!-- Pharmacy Listing Card -->
+                    <div class="card glassmorphic pharmacy-list-card">
+                        <div class="card-header">
+                            <h4><i class="bi bi-geo-alt-fill text-accent"></i> Local Pharmacies</h4>
+                        </div>
+                        <div class="card-body scroll-y p-0" id="pharmacy-list-container">
+                            <!-- Loaded Dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Leaflet Interactive Map Card -->
+                    <div class="card glassmorphic map-card">
+                        <div id="pharmacy-map" class="map-view-box"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Analytics & Adherence -->
+            <section id="view-analytics" class="content-view">
+                <div class="view-header">
+                    <h3>Medication Adherence Analytics</h3>
+                </div>
+                <div class="analytics-layout">
+                    <!-- Chart widget -->
+                    <div class="card glassmorphic chart-card">
+                        <div class="card-header">
+                            <h4><i class="bi bi-pie-chart-fill text-primary"></i> Monthly Adherence Summary</h4>
+                        </div>
+                        <div class="card-body flex-center">
+                            <canvas id="adherenceChart" style="max-height: 250px; max-width: 250px;"></canvas>
+                            <div class="chart-legend-metrics" id="analytics-metrics-box">
+                                <!-- Computed statistics -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Adherence recommendations -->
+                    <div class="card glassmorphic ai-insight-card">
+                        <div class="card-header">
+                            <h4>🤖 AI Medication Adherence Analysis</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="ai-avatar-group">
+                                <div class="ai-avatar-circle animate-pulse"><i class="bi bi-robot"></i></div>
+                                <div>
+                                    <h5>Guardian AI Engine</h5>
+                                    <p class="badge-tag">Predictive Behavior Analytics</p>
+                                </div>
+                            </div>
+                            <div class="ai-bubble-box" id="ai-adherence-recommendations">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Purchase logs / Refill History -->
+                    <div class="card glassmorphic grid-col-2">
+                        <div class="card-header">
+                            <h4><i class="bi bi-receipt-cutoff text-success"></i> Stock Purchase & Verification History</h4>
+                        </div>
+                        <div class="card-body scroll-y p-0">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Medicine</th>
+                                        <th>Purchased Qty</th>
+                                        <th>Current Stock</th>
+                                        <th>Est. Refill Needed</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchase-history-table">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Emergency & SOS Contacts -->
+            <section id="view-emergency" class="content-view">
+                <div class="view-header">
+                    <h3>Emergency Contact & SOS Alert System</h3>
+                </div>
+                <div class="analytics-layout">
+                    
+                    <!-- SOS Panic button card -->
+                    <div class="card glassmorphic text-center flex-column" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem 2rem; border:2px solid var(--color-danger);">
+                        <div class="alarm-icon-group animate-pulse" id="btn-trigger-panic-sos" style="cursor:pointer; width:100px; height:100px; border-radius:50%; background:var(--color-danger); color:#fff; display:flex; align-items:center; justify-content:center; font-size:3.5rem; margin-bottom:1.5rem; box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.15);">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                        <h2 class="text-danger" style="font-size:1.8rem; font-weight:800; margin-bottom:0.5rem;">MANUAL PANIC BUTTON</h2>
+                        <p style="font-weight:600; max-width:80%; margin-bottom:1.5rem;">Tap the icon above to send an instant emergency alert to your daughter, physician, and local services containing your current medication profile and location details.</p>
+                        <div id="sos-sending-alert" style="display:none; font-weight:700; color:var(--color-success); margin-bottom:1rem;" class="animate-fadeIn">
+                            <i class="bi bi-send-check-fill"></i> Alerts dispatched to all contacts!
+                        </div>
+                        <a href="tel:112" class="btn btn-danger btn-lg"><i class="bi bi-telephone-fill"></i> Call Services (112)</a>
+                    </div>
+
+                    <!-- Add Emergency Contact Form -->
+                    <div class="card glassmorphic">
+                        <div class="card-header">
+                            <h4><i class="bi bi-person-plus-fill text-primary"></i> Add Guardian Contact</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="form-add-emergency" class="styled-form">
+                                <div class="form-group">
+                                    <label for="emerg-name">Contact Name</label>
+                                    <input type="text" id="emerg-name" required class="input-glow" placeholder="Sarah Chen">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="emerg-relation">Relationship / Role</label>
+                                        <select id="emerg-relation" class="input-glow">
+                                            <option value="Daughter">Daughter</option>
+                                            <option value="Son">Son</option>
+                                            <option value="Physician">Primary Doctor</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Neighbor">Neighbor</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="emerg-phone">Phone Number</label>
+                                        <input type="tel" id="emerg-phone" required class="input-glow" placeholder="+91 98765 43210">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="emerg-email">Email Address</label>
+                                    <input type="email" id="emerg-email" required class="input-glow" placeholder="sarah.chen@mail.com">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block"><i class="bi bi-save2"></i> Add Contact</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Real-Time EmailJS Dispatch Settings -->
+                    <div class="card glassmorphic grid-col-2" style="border: 1px solid rgba(14, 165, 233, 0.3);">
+                        <div class="card-header">
+                            <h4><i class="bi bi-envelope-heart-fill text-accent"></i> Real-Time Caregiver Email Alerts (EmailJS API)</h4>
+                        </div>
+                        <div class="card-body">
+                            <p style="font-size:0.95rem; color:var(--text-muted); margin-bottom:1.25rem;">
+                                Connect your Medicare Guardian app to a free <b>EmailJS</b> account to send real email notifications to your caregivers when you click the SOS Panic Button or miss your medication doses for 45 minutes.
+                            </p>
+                            <form id="form-emailjs-settings" class="styled-form">
+                                <div class="form-row">
+                                    <div class="form-group" style="display:flex; flex-direction:row; align-items:center; gap:0.5rem; grid-column: span 2;">
+                                        <input type="checkbox" id="api-emailjs-enable" style="width:20px; height:20px; cursor:pointer;">
+                                        <label for="api-emailjs-enable" style="font-weight:800; cursor:pointer;">Enable Real Email Dispatch Alerts</label>
+                                    </div>
+                                </div>
+                                <div class="form-row" id="emailjs-inputs-container" style="display:none; grid-template-columns: repeat(2, 1fr); gap:1rem;">
+                                    <div class="form-group">
+                                        <label for="api-emailjs-service-id">EmailJS Service ID</label>
+                                        <input type="text" id="api-emailjs-service-id" class="input-glow" placeholder="e.g. service_gmail">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="api-emailjs-template-id">EmailJS Template ID</label>
+                                        <input type="text" id="api-emailjs-template-id" class="input-glow" placeholder="e.g. template_sos_alert">
+                                    </div>
+                                    <div class="form-group" style="grid-column: span 2;">
+                                        <label for="api-emailjs-public-key">EmailJS Public Key</label>
+                                        <input type="text" id="api-emailjs-public-key" class="input-glow" placeholder="e.g. user_A1B2C3D4E5F6G7H8I">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <button type="submit" class="btn btn-primary" style="grid-column: span 2;"><i class="bi bi-shield-check"></i> Save API Configuration</button>
+                                </div>
+                            </form>
+                            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:1rem; border-top:1px dashed var(--border-color); padding-top:0.75rem;">
+                                <i class="bi bi-info-circle-fill"></i> <b>Setup Steps</b>: 
+                                1. Create a free account at <a href="https://www.emailjs.com/" target="_blank" style="color:var(--color-primary); font-weight:700;">emailjs.com</a>. 
+                                2. Add an Email Service (like Gmail). 
+                                3. Create an Email Template with subject: <code>MediCare Guardian SOS Notification</code> and content containing variables: <code>{{to_name}}</code>, <code>{{patient_name}}</code>, <code>{{message}}</code>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Listings grid -->
+                    <div class="card glassmorphic grid-col-2">
+                        <div class="card-header">
+                            <h4><i class="bi bi-people-fill text-success"></i> Registered Guardians & Physicians</h4>
+                        </div>
+                        <div class="card-body scroll-y p-0">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Relationship</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emergency-contacts-table">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Caregiver notification transmission history -->
+                    <div class="card glassmorphic grid-col-2">
+                        <div class="card-header">
+                            <h4><i class="bi bi-envelope-check-fill text-warning"></i> Safety Dispatch Alerts Log</h4>
+                        </div>
+                        <div class="card-body scroll-y p-0">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Trigger / Reason</th>
+                                        <th>Alert Target</th>
+                                        <th>Method</th>
+                                        <th>Transmission Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emergency-logs-table">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- AI Voice Assistant Floating Panel -->
+    <div class="voice-assistant-fab" id="voice-assistant-trigger" title="Open AI Health Assistant">
+        <i class="bi bi-mic-fill voice-fab-mic"></i>
+        <div class="avatar-pulse-circle"></div>
+    </div>
+
+    <div class="voice-assistant-panel" id="voice-assistant-box" style="display: none;">
+        <div class="voice-panel-header">
+            <div class="assistant-branding">
+                <i class="bi bi-robot font-large text-accent animate-float"></i>
+                <div>
+                    <h4>Guardian AI Assistant</h4>
+                    <span class="active-badge"><span class="dot"></span> Online</span>
+                </div>
+            </div>
+            <button class="close-btn" id="btn-close-voice-panel"><i class="bi bi-x-lg"></i></button>
+        </div>
+        
+        <div class="voice-panel-body scroll-y" id="chat-messages-container">
+            <div class="chat-msg bot-msg">
+                <p>Hello! I am your Medicare Guardian AI Health Assistant. Ask me anything about your schedule, refills, or pharmacies. I support voice instructions in English, Hindi, Tamil, and Telugu.</p>
+            </div>
+        </div>
+
+        <div class="voice-panel-footer">
+            <div class="voice-controls-row">
+                <div class="voice-lang-select-group">
+                    <label for="assistant-lang"><i class="bi bi-translate"></i> Language</label>
+                    <select id="assistant-lang" class="input-glow-sm">
+                        <option value="en-US">English (US)</option>
+                        <option value="hi-IN">Hindi (हिन्दी)</option>
+                        <option value="ta-IN">Tamil (தமிழ்)</option>
+                        <option value="te-IN">Telugu (తెలుగు)</option>
+                    </select>
+                </div>
+                <div class="voice-toggle-group">
+                    <input type="checkbox" id="assistant-speech-output" checked>
+                    <label for="assistant-speech-output"><i class="bi bi-volume-up-fill"></i> Spoken Response</label>
+                </div>
+            </div>
+            
+            <div class="chat-input-row">
+                <input type="text" id="chat-text-input" placeholder="Type a message or click mic..." class="input-glow">
+                <button class="btn-chat-mic" id="btn-chat-mic" title="Speak to assistant">
+                    <i class="bi bi-mic-fill" id="chat-mic-icon"></i>
+                </button>
+                <button class="btn btn-primary btn-chat-send" id="btn-chat-send"><i class="bi bi-send-fill"></i></button>
+            </div>
+            <div class="mic-status-label" id="mic-status-label"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Medication -->
+    <div class="modal-overlay" id="modal-add-medication" style="display: none;">
+        <div class="modal-card glassmorphic">
+            <div class="modal-header">
+                <h3><i class="bi bi-capsule-pill"></i> Add Medicine Details</h3>
+                <button class="close-btn modal-close-trigger"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body scroll-y">
+                <form id="form-add-medicine" class="styled-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="med-name">Medicine Name <span class="required">*</span></label>
+                            <input type="text" id="med-name" required class="input-glow" placeholder="e.g. Metformin">
+                        </div>
+                        <div class="form-group">
+                            <label for="med-type">Medicine Type</label>
+                            <select id="med-type" class="input-glow">
+                                <option value="Tablet">Tablets</option>
+                                <option value="Capsule">Capsules</option>
+                                <option value="Liquid">Liquid (ml)</option>
+                                <option value="Injection">Injections</option>
+                                <option value="Inhaler">Inhaler</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="med-qty-purchased">Quantity Purchased <span class="required">*</span></label>
+                            <input type="number" id="med-qty-purchased" required min="1" class="input-glow" placeholder="e.g. 60">
+                        </div>
+                        <div class="form-group">
+                            <label for="med-qty-remaining">Remaining Stock <span class="required">*</span></label>
+                            <input type="number" id="med-qty-remaining" required min="0" class="input-glow" placeholder="e.g. 60">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="med-dosage">Dosage <span class="required">*</span></label>
+                            <input type="text" id="med-dosage" required class="input-glow" placeholder="e.g. 1 Tablet / 5ml">
+                        </div>
+                        <div class="form-group">
+                            <label for="med-frequency">Frequency <span class="required">*</span></label>
+                            <select id="med-frequency" class="input-glow">
+                                <option value="once">Once Daily</option>
+                                <option value="twice">Twice Daily</option>
+                                <option value="thrice">Three Times Daily</option>
+                                <option value="four">Four Times Daily</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="med-timing">Timing Instruction</label>
+                            <select id="med-timing" class="input-glow">
+                                <option value="Before Food">Before Food</option>
+                                <option value="After Food">After Food</option>
+                                <option value="With Food">With Food</option>
+                                <option value="Independent">No Preference</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="med-schedule-time">Dose Scheduled Times (Comma separated)</label>
+                            <input type="text" id="med-schedule-time" class="input-glow" placeholder="08:00 AM, 08:00 PM">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="med-expiry-date">Expiry Date <span class="required">*</span></label>
+                            <input type="date" id="med-expiry-date" required class="input-glow">
+                        </div>
+                        <div class="form-group">
+                            <label for="med-doctor">Doctor Name</label>
+                            <input type="text" id="med-doctor" class="input-glow" placeholder="e.g. Dr. Sharma">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="med-indication">Medication Indication (What is this medicine for? / Symptoms it treats)</label>
+                            <input type="text" id="med-indication" class="input-glow" placeholder="e.g. High Blood Pressure, Dizziness, Headache, Diabetes">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary modal-close-trigger">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Medication</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Active Reminder Alarm Escaler (Simulates local OS alarm) -->
+    <div class="modal-overlay modal-reminder-active" id="modal-reminder-alarm" style="display: none;">
+        <div class="modal-card alarm-card">
+            <div class="alarm-icon-group animate-pulse">
+                <i class="bi bi-bell-fill"></i>
+            </div>
+            <h2>Time to take your Medicine!</h2>
+            <div class="alarm-details-box">
+                <h1 id="alarm-med-name">Metformin</h1>
+                <p class="dosage-label" id="alarm-med-dose">1 Tablet (After Food)</p>
+                <div class="alarm-escalation-warning" id="alarm-escalation-state">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Reminder #1
+                </div>
+            </div>
+            
+            <div class="alarm-controls-grid">
+                <button class="btn btn-success btn-lg btn-block" id="btn-alarm-take"><i class="bi bi-check-circle-fill"></i> I Have Taken It</button>
+                <button class="btn btn-warning btn-lg" id="btn-alarm-snooze"><i class="bi bi-alarm-fill"></i> Snooze 15 min</button>
+                <button class="btn btn-danger btn-lg" id="btn-alarm-skip"><i class="bi bi-slash-circle"></i> Skip Dose</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tesseract.js Library via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <!-- Leaflet JS Map Library via CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Chart.js Library via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- EmailJS SDK for Real-time alerts -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+    <!-- Main Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
